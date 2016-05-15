@@ -13,6 +13,9 @@ function neuron (options) {
 
 function NOOP () {}
 
+
+const USER_CONFIGS = ['path', 'resolve']
+
 class Neuron {
   constructor ({
     resolve,
@@ -23,11 +26,11 @@ class Neuron {
     this._facades = []
     this._csses = []
 
-    // this.is_debug = typeof options.debug === 'function'
-    //   ? options.debug
-    //   : () => {
-    //     return !!options.debug
-    //   }
+    this._is_debug = typeof options.debug === 'function'
+      ? options.debug
+      : () => {
+        return !!options.debug
+      }
 
     this.resolve = typeof resolve === 'function'
       ? resolve
@@ -152,11 +155,32 @@ class Neuron {
   output_config () {
     this._analyze()
 
-    return `<script>neuron.config({path: '/s'})</script>`
+    let config = this._is_debug()
+      ? {}
+      : {
+        loaded: this._json_stringify(this._loaded),
+        graph: this._json_stringify(this._graph)
+      }
+
+    USER_CONFIGS.forEach((key) => {
+      let c = tihs.js_config[key]
+      if (c) {
+        config[key] = c
+      }
+    })
+
+    let joiner = ',' + this._get_joiner()
+
+    let config_pair = Object.keys(config).map((key) => {
+      return key + ':' + config[key]
+    })
+    .join(joiner)
+
+    return `<script>neuron.config({${config_pair}})</script>`
   }
 
   output_scripts () {
-    if (this.debug()) {
+    if (this._is_debug()) {
       return ''
     }
 
@@ -176,7 +200,13 @@ class Neuron {
       this._decorate_script(output, id)
     })
 
-    return ''
+    return output.join(this._get_joiner())
+  }
+
+  _get_joiner () {
+    return this._is_debug()
+      ? '\n'
+      : ''
   }
 
   _decorate_script (output, id) {
@@ -191,21 +221,31 @@ class Neuron {
   output_facades () {
     this._analyze()
 
+    let is_debug = this._is_debug()
+
     return [
       '<script>',
+
       this._facades
       .map((facade) => {
         if (!facade.data) {
           return `facade('${facade.id}')`
         }
 
-        let data = JSON.stringify(facade.data)
+        let data = this._json_stringify(facade.data)
         return `facade('${facade.id}', ${data})`
       })
       .join('\n'),
+
       '</script>'
 
     ].join('\n')
+  }
+
+  _json_stringify (subject) {
+    return this.is_debug()
+      ? JSON.stringify(facade.data, null, 2)
+      : JSON.stringify(facade.data)
   }
 }
 
