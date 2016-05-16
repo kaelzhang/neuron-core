@@ -7,8 +7,12 @@ const access = require('object-access')
 
 class Walker {
   constructor (tree) {
-    this._tree = tree
+    this._tree = tree || {}
     this.guid = 0
+  }
+
+  _guid () {
+    return this.guid ++
   }
 
   look_up (facades) {

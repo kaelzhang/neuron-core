@@ -20,16 +20,17 @@ class Neuron {
   constructor ({
     resolve,
     dependency_tree,
-    js_config
+    js_config,
+    debug
 
   }) {
     this._facades = []
     this._csses = []
 
-    this._is_debug = typeof options.debug === 'function'
-      ? options.debug
+    this._is_debug = typeof debug === 'function'
+      ? debug
       : () => {
-        return !!options.debug
+        return !!debug
       }
 
     this.resolve = typeof resolve === 'function'
@@ -77,7 +78,7 @@ class Neuron {
     let {
       packages,
       graph
-    } = this._walker.lookup(facade_module_ids)
+    } = this._walker.look_up(facade_module_ids)
 
     this._packages = packages
     this._graph = graph
