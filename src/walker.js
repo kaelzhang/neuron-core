@@ -40,7 +40,7 @@ class Walker {
       // If the module id facaded contains path, the path will be ignored
       this._walk_down_facade(
         parsed.name,
-        parsed.version,
+        parsed.version || '*',
         parsed.path,
         facade_node
       )
@@ -57,8 +57,16 @@ class Walker {
       return
     }
 
-    versions = this._tree[name]
-    return semver.max_satisfying(range, Object.keys(versions))
+    let versions = Object.keys(this._tree[name])
+    let check = versions.every((version) => {
+      return semver.valid(version)
+    })
+
+    if (!check) {
+      return
+    }
+
+    return semver.maxSatisfying(range, Object.keys(versions))
   }
 
   _walk_down_facade (name, range, path, dependency_node) {
@@ -104,20 +112,21 @@ class Walker {
     }
 
     let current_dependency_node = this._get_dependency_node(node)
-    dependencies.forEach((dep) => {
+
+    Object.keys(dependencies).forEach((dep) => {
       let {
-        dep_name,
-        dep_range,
-        dep_path
+        name,
+        version,
+        path
       } = parse_module_id(dep)
 
       // The dependency version of a package is already resolved by
       //   neuron-package-dependency
       let dep_version = dependencies[dep]
       this._walk_down_non_facade(
-        dep_name,
-        dep_range,
-        dep_version,
+        name,
+        version || '*',
+        dep_version || '*',
         current_dependency_node
       )
     })
@@ -157,6 +166,7 @@ class Walker {
 
     let index = this._guid()
     this.index_map[package_id] = index
+
     let node = [version]
     this.graph[index] = node
     return {node, index}

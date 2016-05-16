@@ -27,11 +27,8 @@ class Neuron {
     this._facades = []
     this._csses = []
 
-    this._is_debug = typeof debug === 'function'
-      ? debug
-      : () => {
-        return !!debug
-      }
+    this._is_debug = debug
+    this._joiner = this._get_joiner()
 
     this.resolve = typeof resolve === 'function'
       ? resolve
@@ -49,19 +46,23 @@ class Neuron {
     let ret = {}
 
     ;[
-      'facade',
-      'css',
-      'js',
-      'src',
-      'output_neuron',
-      'output_css',
-      'output_config',
-      'output_scripts',
-      'output_facades'
+      ['facade',         0],
+      ['css',            0],
+      ['js',             1],
+      ['src',            0],
+      ['output_neuron',  1],
+      ['output_css',     1],
+      ['output_config',  1],
+      ['output_scripts', 1],
+      ['output_facades', 1]
 
-    ].forEach((method) => {
+    ].forEach(([method, output]) => {
       ret[method] = (...args) => {
-        return this[method](...args)
+        return this[method](...args) + (
+          output
+            ? this._joiner
+            : ''
+        )
       }
     })
 
@@ -82,7 +83,6 @@ class Neuron {
 
     this._packages = packages
     this._graph = graph
-    this._joiner = this._get_joiner()
   }
 
   facade (id, data) {
@@ -90,7 +90,7 @@ class Neuron {
       id: id,
       data: data
     })
-    return ''
+    return this._joiner
   }
 
   // @param {Boolean} inline, TODO
@@ -127,7 +127,7 @@ class Neuron {
   output_neuron () {
     this._analyze()
 
-    return this._decorate('/s/neuron.js', 'js')
+    return this._decorate(this.resolve('neuron.js'), 'js')
   }
 
   output_css () {
@@ -149,9 +149,9 @@ class Neuron {
       return `<link rel="stylesheet" href="${link}">`
     }
 
-    if (extra) {
-      extra = ' ' + extra
-    }
+    extra = extra
+      ? ' ' + extra
+      : ''
 
     if (type === 'js') {
       return `<script src="${link}"${extra}></script>`
@@ -161,7 +161,7 @@ class Neuron {
   output_config () {
     this._analyze()
 
-    let config = this._is_debug()
+    let config = this._is_debug
       ? {}
       : {
         loaded: this._json_stringify(this._loaded),
@@ -186,8 +186,8 @@ class Neuron {
   }
 
   output_scripts () {
-    if (this._is_debug()) {
-      return ''
+    if (this._is_debug) {
+      return this._joiner
     }
 
     this._analyze()
@@ -206,11 +206,11 @@ class Neuron {
       this._decorate_script(output, id)
     })
 
-    return output.join(this._get_joiner())
+    return output.join(this._joiner)
   }
 
   _get_joiner () {
-    return this._is_debug()
+    return this._is_debug
       ? '\n'
       : ''
   }
@@ -227,7 +227,7 @@ class Neuron {
   output_facades () {
     this._analyze()
 
-    let divider = this._is_debug()
+    let divider = this._is_debug
       ? '\n'
       : ';'
 
@@ -251,7 +251,7 @@ class Neuron {
   }
 
   _json_stringify (subject) {
-    return this._is_debug()
+    return this._is_debug
       ? JSON.stringify(subject, null, 2)
       : JSON.stringify(subject)
   }
