@@ -47,7 +47,7 @@ class Walker {
     })
 
     return {
-      selected: this.selected,
+      packages: this.selected,
       graph: this.graph
     }
   }

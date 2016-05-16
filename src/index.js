@@ -38,7 +38,7 @@ class Neuron {
       : Neuron._default_resolver
 
     this.dependency_tree = dependency_tree
-    this.js_config = js_config
+    this.js_config = js_config || {}
 
     this._loaded = []
 
@@ -82,6 +82,7 @@ class Neuron {
 
     this._packages = packages
     this._graph = graph
+    this._joiner = this._get_joiner()
   }
 
   facade (id, data) {
@@ -106,6 +107,10 @@ class Neuron {
 
   src (id) {
     let parsed = parse_module_id(id)
+    return this._src(parsed)
+  }
+
+  _src (parsed) {
     let {
       name,
       version
@@ -133,7 +138,7 @@ class Neuron {
       let href = this.src(id)
       return this._decorate(href, 'css')
     })
-    .join('\n')
+    .join(this._joiner)
   }
 
   // @param {String} link link resource
@@ -164,7 +169,7 @@ class Neuron {
       }
 
     USER_CONFIGS.forEach((key) => {
-      let c = tihs.js_config[key]
+      let c = this.js_config[key]
       if (c) {
         config[key] = c
       }
@@ -211,18 +216,20 @@ class Neuron {
   }
 
   _decorate_script (output, id) {
-    let src = this.src(id)
+    let src = this._src(id)
     output.push(this._decorate(src, 'js', 'async'))
   }
 
   _set_loaded (id) {
-    self._loaded.push(id.pkg)
+    this._loaded.push(id.pkg)
   }
 
   output_facades () {
     this._analyze()
 
-    let is_debug = this._is_debug()
+    let divider = this._is_debug()
+      ? '\n'
+      : ';'
 
     return [
       '<script>',
@@ -236,17 +243,17 @@ class Neuron {
         let data = this._json_stringify(facade.data)
         return `facade('${facade.id}', ${data})`
       })
-      .join('\n'),
+      .join(),
 
       '</script>'
 
-    ].join('\n')
+    ].join(this._joiner)
   }
 
   _json_stringify (subject) {
-    return this.is_debug()
-      ? JSON.stringify(facade.data, null, 2)
-      : JSON.stringify(facade.data)
+    return this._is_debug()
+      ? JSON.stringify(subject, null, 2)
+      : JSON.stringify(subject)
   }
 }
 
