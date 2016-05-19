@@ -4,7 +4,10 @@ module.exports = neuron
 
 const parse_module_id = require('module-id')
 const Walker = require('./walker')
+const unique = require('array-unique')
 
+const code = require('code-stringify')
+code.QUOTE = '\''
 
 function neuron (options) {
   return new Neuron(options)
@@ -48,8 +51,9 @@ class Neuron {
     ;[
       ['facade',         0],
       ['css',            0],
-      ['js',             1],
+      ['analyze',        0],
       ['src',            0],
+      ['js',             1],
       ['output_neuron',  1],
       ['output_css',     1],
       ['output_config',  1],
@@ -69,8 +73,8 @@ class Neuron {
     return ret
   }
 
-  _analyze () {
-    this._analyze = NOOP
+  analyze () {
+    this.analyze = NOOP
 
     let facade_module_ids = this._facades.map((facade) => {
       return facade.id
@@ -83,6 +87,8 @@ class Neuron {
 
     this._packages = packages
     this._graph = graph
+
+    return ''
   }
 
   facade (id, data) {
@@ -107,10 +113,7 @@ class Neuron {
 
   src (id) {
     let parsed = parse_module_id(id)
-    return this._src(parsed)
-  }
 
-  _src (parsed) {
     let {
       name,
       version
@@ -121,18 +124,18 @@ class Neuron {
       parsed.version = version
     }
 
-    return this.resolve(parsed.normalize_url())
+    return this._src(parsed)
+  }
+
+  _src (parsed) {
+    return this.resolve(parsed.url)
   }
 
   output_neuron () {
-    this._analyze()
-
     return this._decorate(this.resolve('neuron.js'), 'js')
   }
 
   output_css () {
-    this._analyze()
-
     return this._csses
     .map((id) => {
       let href = this.src(id)
@@ -159,14 +162,7 @@ class Neuron {
   }
 
   output_config () {
-    this._analyze()
-
-    let config = this._is_debug
-      ? {}
-      : {
-        loaded: this._json_stringify(this._loaded),
-        graph: this._json_stringify(this._graph)
-      }
+    let config = {}
 
     USER_CONFIGS.forEach((key) => {
       let c = this.js_config[key]
@@ -175,22 +171,20 @@ class Neuron {
       }
     })
 
-    let joiner = ',' + this._get_joiner()
+    config.loaded = unique(this._loaded)
+    config.graph = this._graph
 
-    let config_pair = Object.keys(config).map((key) => {
-      return key + ':' + config[key]
-    })
-    .join(joiner)
+    let config_string = this._is_debug
+      ? code(config, null, 2)
+      : code(config)
 
-    return `<script>neuron.config({${config_pair}})</script>`
+    return `<script>neuron.config(${config_string})</script>`
   }
 
   output_scripts () {
     if (this._is_debug) {
       return this._joiner
     }
-
-    this._analyze()
 
     let output = []
 
@@ -200,7 +194,9 @@ class Neuron {
         path
       } = this._packages[name]
 
-      let id = parse_module_id(name, version, path)
+      let id = parse_module_id(name)
+      id.version = version
+      id.path = path
 
       this._set_loaded(id)
       this._decorate_script(output, id)
@@ -221,12 +217,10 @@ class Neuron {
   }
 
   _set_loaded (id) {
-    this._loaded.push(id.pkg)
+    this._loaded.push(id.id)
   }
 
   output_facades () {
-    this._analyze()
-
     let divider = this._is_debug
       ? '\n'
       : ';'

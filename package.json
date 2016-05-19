@@ -2,7 +2,7 @@
   "name": "neuron-core",
   "version": "1.0.0",
   "description": "neuron-core",
-  "main": "./src",
+  "main": "./lib",
   "scripts": {
     "test": "./node_modules/.bin/mocha --reporter spec ./test/*.js"
   },
@@ -26,7 +26,9 @@
     "mocha": "~1.13.0"
   },
   "dependencies": {
-    "module-id": "1.1.0",
+    "array-unique": "^0.2.1",
+    "code-stringify": "^1.0.2",
+    "module-id": "^2.0.0",
     "object-access": "^1.1.4",
     "semver": "^5.1.0"
   }

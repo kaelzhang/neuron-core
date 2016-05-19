@@ -41,7 +41,7 @@ class Walker {
       this._walk_down_facade(
         parsed.name,
         parsed.version || '*',
-        parsed.path,
+        parsed.path || '',
         facade_node
       )
     })
@@ -81,11 +81,17 @@ class Walker {
     this._walk_down(name, range, version, '', dependency_node)
   }
 
-  _walk_down(name, range, version, path, dependency_node) {
+  _get_pkg (name, version) {
+    let parsed = parse_module_id(name)
+    parsed.version = version
+    return parsed.pkg
+  }
+
+  _walk_down (name, range, version, path, dependency_node) {
     // if the node is already parsed,
     // sometimes we still need to add the dependency to the parent node
-    let package_range_id = parse_module_id(name, range).pkg
-    let package_id = parse_module_id(name, version).pkg
+    let package_range_id = this._get_pkg(name, range)
+    let package_id = this._get_pkg(name, version)
 
     let {
       node,
