@@ -189,17 +189,19 @@ class Neuron {
     let output = []
 
     Object.keys(this._packages).forEach((name) => {
-      let {
-        version,
-        path
-      } = this._packages[name]
+      this._packages[name].forEach((m) => {
+        let {
+          version,
+          path
+        } = m
 
-      let id = parse_module_id(name)
-      id.version = version
-      id.path = path
+        let id = parse_module_id(name)
+        id.version = version
+        id.path = path
 
-      this._set_loaded(id)
-      this._decorate_script(output, id)
+        this._set_loaded(id)
+        this._decorate_script(output, id)
+      })
     })
 
     return output.join(this._joiner)
