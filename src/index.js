@@ -171,8 +171,10 @@ class Neuron {
       }
     })
 
-    config.loaded = unique(this._loaded)
-    config.graph = this._graph
+    if (!this._is_debug) {
+      config.loaded = unique(this._loaded)
+      config.graph = this._graph
+    }
 
     let config_string = this._is_debug
       ? code(config, null, 2)
