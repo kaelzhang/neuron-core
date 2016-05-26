@@ -1,7 +1,7 @@
 {
   "name": "neuron-core",
-  "version": "1.1.0",
-  "description": "neuron-core",
+  "version": "1.1.1",
+  "description": "Package dependency analytics and combo strategy for neuron.js",
   "main": "./lib",
   "scripts": {
     "test": "./node_modules/.bin/mocha --reporter spec ./test/*.js"
