@@ -1,6 +1,6 @@
 {
   "name": "neuron-core",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "neuron-core",
   "main": "./lib",
   "scripts": {
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "array-unique": "^0.2.1",
-    "code-stringify": "^1.0.2",
+    "code-stringify": "^1.1.0",
     "module-id": "^2.0.0",
     "object-access": "^1.1.4",
     "semver": "^5.1.0"
