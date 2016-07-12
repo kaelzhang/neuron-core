@@ -25,7 +25,7 @@ class Neuron {
     resolve,
     dependency_tree,
     js_config,
-    debug
+    debug,
     enable_combo
 
   }) {
@@ -142,14 +142,13 @@ class Neuron {
       }
 
       let {
-        name,
         version,
         path
       } = id
 
       let version_paths = this._packages[name]
 
-      if (version === '*') {
+      if (version === undefined) {
         version_paths.forEach(({version, path}) => {
           select(name, version, path)
           delete this._packages[name]
@@ -173,6 +172,8 @@ class Neuron {
         delete this._packages[name]
       }
     })
+
+    return cleaned
   }
 
   facade (id, data) {
@@ -273,7 +274,6 @@ class Neuron {
     }
 
     let output = []
-
     this._output_combos_scripts(output)
 
     Object.keys(this._packages).forEach((name) => {
