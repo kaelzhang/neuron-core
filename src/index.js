@@ -2,9 +2,11 @@
 
 module.exports = neuron
 
+const fs = require('fs')
 const parse_module_id = require('module-id')
 const Walker = require('./walker')
 const unique = require('array-unique')
+const { EventEmitter } = require('events')
 
 const code = require('code-stringify')
 code.QUOTE = '\''
@@ -19,12 +21,13 @@ function NOOP () {}
 
 const USER_CONFIGS = ['path', 'resolve']
 
-class Neuron {
+class Neuron extends EventEmitter {
   constructor ({
     resolve,
     dependency_tree,
     js_config,
-    debug
+    debug,
+    root
 
   }) {
     this._facades = []
@@ -37,8 +40,9 @@ class Neuron {
       ? resolve
       : Neuron._default_resolver
 
-    this.dependency_tree = dependency_tree
-    this.js_config = js_config || {}
+    this._dependency_tree = dependency_tree
+    this._js_config = js_config || {}
+    this._root = root
 
     this._loaded = []
 
@@ -100,9 +104,10 @@ class Neuron {
   }
 
   // @param {Boolean} inline, TODO
-  js (js) {
+  js (js, inline = false) {
     let src = this.src(js)
-    return this._decorate(src, 'js')
+
+    return this._decorate(src, 'js') || ''
   }
 
   // @param {Boolean} inline, TODO
@@ -125,6 +130,10 @@ class Neuron {
     }
 
     return this._src(parsed)
+  }
+
+  _id2url (id) {
+
   }
 
   _src (parsed) {
@@ -158,6 +167,17 @@ class Neuron {
 
     if (type === 'js') {
       return `<script src="${link}"${extra}></script>`
+    }
+  }
+
+  // @param {String} content
+  _decorate_inline (content, type) {
+    if (type === 'css') {
+      return `<style>${content}</style>`
+    }
+
+    if (type === 'js') {
+      return `<script>${content}</script>`
     }
   }
 
