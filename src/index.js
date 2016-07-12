@@ -4,7 +4,8 @@ module.exports = neuron
 
 const parse_module_id = require('module-id')
 const Walker = require('./walker')
-const unique = require('array-unique')
+const unique = require('make-unique')
+const indexof = require('array-index-of')
 
 const code = require('code-stringify')
 code.QUOTE = '\''
@@ -25,10 +26,13 @@ class Neuron {
     dependency_tree,
     js_config,
     debug
+    enable_combo
 
   }) {
     this._facades = []
     this._csses = []
+
+    this.enable_combo = enable_combo
 
     this._is_debug = debug
     this._joiner = this._get_joiner()
@@ -41,6 +45,7 @@ class Neuron {
     this.js_config = js_config || {}
 
     this._loaded = []
+    this._combos = []
 
     this._walker = new Walker(dependency_tree)
   }
@@ -53,6 +58,7 @@ class Neuron {
       ['css',            0],
       ['analyze',        0],
       ['src',            0],
+      ['combo',          0],
       ['js',             1],
       ['output_neuron',  1],
       ['output_css',     1],
@@ -88,7 +94,85 @@ class Neuron {
     this._packages = packages
     this._graph = graph
 
+    this._analyze_combo()
+
     return ''
+  }
+
+  combo (...names) {
+    if (this.enable_combo && names.length) {
+      this._combos.push(names)
+    }
+
+    return ''
+  }
+
+  _analyze_combo () {
+    let combos = this._combos
+    if (!combos.length) {
+      return
+    }
+
+    this._combos = []
+    combos.forEach((combo) => {
+      combo = this._clean_combo(combo)
+      if (combo.length) {
+        this._combos.push(combo)
+      }
+    })
+  }
+
+  _clean_combo (combo) {
+    let cleaned = []
+
+    let select = (name, version, path) => {
+      let id = parse_module_id(name)
+      id.version = version
+      id.path = path
+
+      cleaned.push(id)
+      this._set_loaded(id)
+    }
+
+    combo.forEach((name) => {
+      let id = parse_module_id(name)
+
+      if (!(id.name in this._packages)) {
+        return
+      }
+
+      let {
+        name,
+        version,
+        path
+      } = id
+
+      let version_paths = this._packages[name]
+
+      if (version === '*') {
+        version_paths.forEach(({version, path}) => {
+          select(name, version, path)
+          delete this._packages[name]
+        })
+        return
+      }
+
+      let index = indexof(version_paths, {version, path}, (a, b) => {
+        return a.version === b.version
+          && a.path === b.path
+      })
+
+      if (!~index) {
+        return
+      }
+
+      versions_path.splice(index, 1)
+      select(name, version, path)
+
+      if (!versions_path.length) {
+        delete this._packages[name]
+      }
+    })
   }
 
   facade (id, data) {
@@ -190,6 +274,8 @@ class Neuron {
 
     let output = []
 
+    this._output_combos_scripts(output)
+
     Object.keys(this._packages).forEach((name) => {
       this._packages[name].forEach((m) => {
         let {
@@ -207,6 +293,23 @@ class Neuron {
     })
 
     return output.join(this._joiner)
+  }
+
+  _output_combos_scripts (output) {
+    this._combos.forEach((combo) => {
+      if (combo.length === 1) {
+        return this._decorate_script(output, combo[0])
+      }
+
+      let combo_urls = combo.map(id => id.url)
+      let script = this._decorate(
+        this.resolve(combo_urls),
+        'js',
+        'async'
+      )
+
+      output.push(script)
+    })
   }
 
   _get_joiner () {

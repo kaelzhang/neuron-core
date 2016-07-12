@@ -26,8 +26,9 @@
     "mocha": "~1.13.0"
   },
   "dependencies": {
-    "array-unique": "^0.2.1",
+    "array-index-of": "^0.1.0",
     "code-stringify": "^1.1.0",
+    "make-unique": "^1.0.2",
     "module-id": "^2.0.0",
     "object-access": "^1.1.4",
     "semver": "^5.1.0"
