@@ -5,7 +5,6 @@ module.exports = neuron
 const parse_module_id = require('module-id')
 const Walker = require('./walker')
 const unique = require('make-unique')
-const indexof = require('array-index-of')
 
 const code = require('code-stringify')
 code.QUOTE = '\''
@@ -156,9 +155,9 @@ class Neuron {
         return
       }
 
-      let index = indexof(version_paths, {version, path}, (a, b) => {
-        return a.version === b.version
-          && a.path === b.path
+      let index = version_paths.findIndex((v) => {
+        return v.version === version
+          && v.path === path
       })
 
       if (!~index) {

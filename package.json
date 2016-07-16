@@ -1,6 +1,6 @@
 {
   "name": "neuron-core",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Package dependency analytics and combo strategy for neuron.js",
   "main": "./lib",
   "scripts": {
@@ -26,7 +26,6 @@
     "mocha": "~1.13.0"
   },
   "dependencies": {
-    "array-index-of": "^0.1.0",
     "code-stringify": "^1.1.0",
     "make-unique": "^1.0.2",
     "module-id": "^2.0.0",
