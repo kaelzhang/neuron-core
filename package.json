@@ -1,6 +1,6 @@
 {
   "name": "neuron-core",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Package dependency analytics and combo strategy for neuron.js",
   "main": "./lib",
   "scripts": {
