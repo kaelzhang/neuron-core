@@ -55,10 +55,11 @@ class Neuron {
     ;[
       ['facade',         0],
       ['css',            0],
-      ['analyze',        0],
       ['src',            0],
       ['combo',          0],
       ['js',             1],
+
+      ['analyze',        0],
       ['output_neuron',  1],
       ['output_css',     1],
       ['output_config',  1],
