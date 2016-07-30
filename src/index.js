@@ -46,6 +46,8 @@ class Neuron {
     this._loaded = []
     this._combos = []
 
+    this._neuron_outputed = false
+
     this._walker = new Walker(dependency_tree)
   }
 
@@ -181,22 +183,55 @@ class Neuron {
       id: id,
       data: data
     })
-    return this._joiner
-  }
-
-  // @param {Boolean} inline, TODO
-  js (js) {
-    let src = this.src(js)
-    return this._decorate(src, 'js')
-  }
-
-  // @param {Boolean} inline, TODO
-  css (css) {
-    this._csses.push(css)
     return ''
   }
 
-  src (id) {
+  // @param {string|Array.<string>}
+  js (...ids) {
+    // if neuron is not outputed, append to the first js
+    if (!this._neuron_outputed) {
+      this._neuron_outputed = true
+      ids.push('neuron')
+    }
+
+    if (this._is_debug) {
+      return ids
+        .map(id => this._js(id))
+        .join(this._joiner)
+    }
+
+    return this._js(...ids)
+  }
+
+  _js (...ids) {
+    let src = this.src(...ids)
+    return this._decorate(src, 'js')
+  }
+
+  //
+  css (...ids) {
+    this._csses.push(...ids)
+    return ''
+  }
+
+  _css (...ids) {
+    let src = this.src(...ids)
+    return this._decorate(src, 'css')
+  }
+
+  src (...ids) {
+    let urls = ids.map((id) => {
+      if (id === 'neuron') {
+        return 'neuron.js'
+      }
+
+      return this._resolve_id(id).url
+    })
+
+    return this.resolve(...urls)
+  }
+
+  _resolve_id (id) {
     let parsed = parse_module_id(id)
 
     let {
@@ -209,24 +244,26 @@ class Neuron {
       parsed.version = version
     }
 
-    return this._src(parsed)
-  }
-
-  _src (parsed) {
-    return this.resolve(parsed.url)
+    return parsed
   }
 
   output_neuron () {
+    if (this._neuron_outputed) {
+      return ''
+    }
+
+    this._neuron_outputed = true
     return this._decorate(this.resolve('neuron.js'), 'js')
   }
 
   output_css () {
-    return this._csses
-    .map((id) => {
-      let href = this.src(id)
-      return this._decorate(href, 'css')
-    })
-    .join(this._joiner)
+    if (this._is_debug) {
+      return this._csses
+        .map(id => this._css(id))
+        .join(this._joiner)
+    }
+
+    return this._css(...this._csses)
   }
 
   // @param {String} link link resource
@@ -319,7 +356,7 @@ class Neuron {
   }
 
   _decorate_script (output, id) {
-    let src = this._src(id)
+    let src = this.resolve(id.url)
     output.push(this._decorate(src, 'js', 'async'))
   }
 
