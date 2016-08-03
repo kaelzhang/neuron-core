@@ -340,7 +340,7 @@ class Neuron {
 
       let combo_urls = combo.map(id => id.url)
       let script = this._decorate(
-        this.resolve(combo_urls),
+        this.resolve(...combo_urls),
         'js',
         'async'
       )
