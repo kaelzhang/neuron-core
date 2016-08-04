@@ -147,6 +147,7 @@ class Neuron {
         version,
         path
       } = id
+      name = id.name
 
       let version_paths = this._packages[name]
 
