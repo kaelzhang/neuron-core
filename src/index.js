@@ -300,6 +300,10 @@ class Neuron {
   // - if debug: output several sources
   // - otherwise: output the comboed source.
   _decorate_sources (output, ids, type, extra) {
+    if (!ids.length) {
+      return output
+    }
+
     if (this._is_debug) {
       ids.forEach((id) => {
         this._decorate_by_ids(output, [id], type, extra)
