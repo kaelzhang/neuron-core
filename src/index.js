@@ -58,34 +58,34 @@ class Neuron {
   singleton () {
     let ret = {}
 
-    //  method           output
+    //  method           chained
     ;[
       // public
-      ['facade',         0],
-      ['css',            0],
-      ['src',            0],
-      ['combo',          0],
-      ['js',             0],
+      ['facade',         true],
+      ['css',            true],
+      ['src',            true],
+      ['combo',          true],
+      ['js',             true],
 
       // semi-private
-      ['analyze',        0],
+      ['analyze',        true],
 
       // header
-      ['output_css',     1],
-      ['output_neuron',  1],
-      ['output_scripts', 1],
+      ['output_css',     false],
+      ['output_neuron',  false],
+      ['output_scripts', false],
 
       // footer
-      ['output_config',  1],
-      ['output_facades', 1]
+      ['output_config',  false],
+      ['output_facades', false]
 
-    ].forEach(([method, output]) => {
+    ].forEach(([method, chained]) => {
       ret[method] = (...args) => {
         let result = this[method](...args)
 
-        return output
-          ? result + this._joiner
-          : result
+        return chained
+          ? ret
+          : result + this._joiner
       }
     })
 
@@ -103,7 +103,6 @@ class Neuron {
   // Register a css resource or bunch of resources
   css (...ids) {
     this._csses.push(...ids)
-    return this
   }
 
   // Should be used in mother template
@@ -120,7 +119,6 @@ class Neuron {
       id: id,
       data: data
     })
-    return this
   }
 
   // Register a js file or a combo of js files
@@ -134,7 +132,6 @@ class Neuron {
     }
 
     this._jses.push(ids)
-    return this
   }
 
   // Declare that some modules should be comboed.
@@ -142,8 +139,6 @@ class Neuron {
     if (this.enable_combo && names.length) {
       this._combos.push(names)
     }
-
-    return this
   }
 
   // output normal scripts which are mot modules
@@ -204,8 +199,6 @@ class Neuron {
     this._graph = graph
 
     this._analyze_combo()
-
-    return ''
   }
 
   _analyze_combo () {
