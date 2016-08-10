@@ -63,13 +63,13 @@ class Neuron {
       // public
       ['facade',         true],
       ['css',            true],
-      ['src',            true],
       ['combo',          true],
       ['js',             true],
 
       // semi-private
       ['analyze',        true],
 
+      ['src',            false],
       // header
       ['output_css',     false],
       ['output_neuron',  false],
