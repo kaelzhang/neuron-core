@@ -30,6 +30,9 @@ class Neuron {
   }) {
     this._facades = []
     this._csses = []
+    this._jses = []
+    this._loaded = []
+    this._combos = []
 
     this.enable_combo = enable_combo
 
@@ -43,43 +46,147 @@ class Neuron {
     this.dependency_tree = dependency_tree
     this.js_config = js_config || {}
 
-    this._loaded = []
-    this._combos = []
-
     this._neuron_outputed = false
 
     this._walker = new Walker(dependency_tree)
   }
 
+  toString () {
+    return this._joiner
+  }
+
   singleton () {
     let ret = {}
 
+    //  method           output
     ;[
+      // public
       ['facade',         0],
       ['css',            0],
       ['src',            0],
       ['combo',          0],
-      ['js',             1],
+      ['js',             0],
 
+      // semi-private
       ['analyze',        0],
-      ['output_neuron',  1],
+
+      // header
       ['output_css',     1],
-      ['output_config',  1],
+      ['output_neuron',  1],
       ['output_scripts', 1],
+
+      // footer
+      ['output_config',  1],
       ['output_facades', 1]
 
     ].forEach(([method, output]) => {
       ret[method] = (...args) => {
-        return this[method](...args) + (
-          output
-            ? this._joiner
-            : ''
-        )
+        let result = this[method](...args)
+
+        return output
+          ? result + this._joiner
+          : result
       }
     })
 
+    // For those who returns `this`
+    ret.toString = () => {
+      return ''
+    }
+
     return ret
   }
+
+  // css
+  /////////////////////////////////////////////////////////////
+
+  // Register a css resource or bunch of resources
+  css (...ids) {
+    this._csses.push(...ids)
+    return this
+  }
+
+  // Should be used in mother template
+  output_css () {
+    this._decorate_sources([], this._csses, 'css').join(this._joiner)
+  }
+
+  // facade & js
+  /////////////////////////////////////////////////////////////
+
+  // Register a facade with its data
+  facade (id, data) {
+    this._facades.push({
+      id: id,
+      data: data
+    })
+    return this
+  }
+
+  // Register a js file or a combo of js files
+
+  // @param {string|Array.<string>}
+  js (...ids) {
+    // if neuron is not outputed, append to the first js
+    if (!this._neuron_outputed) {
+      this._neuron_outputed = true
+      ids.push('neuron')
+    }
+
+    this._jses.push(ids)
+    return this
+  }
+
+  // Declare that some modules should be comboed.
+  combo (...names) {
+    if (this.enable_combo && names.length) {
+      this._combos.push(names)
+    }
+
+    return this
+  }
+
+  // output normal scripts which are mot modules
+  _output_normal_scripts (output) {
+    this._jses.forEach((jses) => {
+      this._decorate_sources(output, jses, 'js')
+    })
+  }
+
+  // Output a resolved url of a id or ids immediately.
+  // @param {Array.<string|ModuleId>} ids
+  src (...ids) {
+    let urls = ids.map((id) => {
+      if (id === 'neuron') {
+        return 'neuron.js'
+      }
+
+      return typeof id === 'string'
+        ? this._resolve_id(id).url
+        : id.url
+    })
+
+    return this.resolve(...urls)
+  }
+
+  _resolve_id (id) {
+    let parsed = parse_module_id(id)
+
+    let {
+      name,
+      version
+    } = parsed
+
+    version = this._walker.resolve_range(name, version)
+    if (version) {
+      parsed.version = version
+    }
+
+    return parsed
+  }
+
+  // analyze
+  /////////////////////////////////////////////////////////////
 
   analyze () {
     this.analyze = NOOP
@@ -101,14 +208,6 @@ class Neuron {
     return ''
   }
 
-  combo (...names) {
-    if (this.enable_combo && names.length) {
-      this._combos.push(names)
-    }
-
-    return ''
-  }
-
   _analyze_combo () {
     let combos = this._combos
     if (!combos.length) {
@@ -124,6 +223,8 @@ class Neuron {
     })
   }
 
+  // @param {string} combo
+  // @returns {Array.<ModuleId>}
   _clean_combo (combo) {
     let cleaned = []
 
@@ -179,73 +280,48 @@ class Neuron {
     return cleaned
   }
 
-  facade (id, data) {
-    this._facades.push({
-      id: id,
-      data: data
-    })
-    return ''
-  }
+  // decorator
+  /////////////////////////////////////////////////////////////
 
-  // @param {string|Array.<string>}
-  js (...ids) {
-    // if neuron is not outputed, append to the first js
-    if (!this._neuron_outputed) {
-      this._neuron_outputed = true
-      ids.push('neuron')
+  // Decorate one link
+  // @param {String} link link resource
+  // @param {String} type
+  // @param {Boolean} inline whether should output resources inline
+  _decorate (link, type, extra = '') {
+    if (type === 'css') {
+      return `<link rel="stylesheet" href="${link}">`
     }
 
+    if (extra) {
+      extra = ' ' + extra
+    }
+
+    if (type === 'js') {
+      return `<script src="${link}"${extra}></script>`
+    }
+  }
+
+  // Decorate by ids
+  // @param {Array} output
+  // @param {Array} ids
+  // - if debug: output several sources
+  // - otherwise: output the comboed source.
+  _decorate_sources (output, ids, type, extra) {
     if (this._is_debug) {
-      return ids
-        .map(id => this._js(id))
-        .join(this._joiner)
+      ids.forEach((id) => {
+        this._decorate_by_ids(output, [id], type, extra)
+      })
+
+    } else {
+      this._decorate_by_ids(output, ids, type, extra)
     }
 
-    return this._js(...ids)
+    return output
   }
 
-  _js (...ids) {
+  _decorate_by_ids (output, ids, type, extra) {
     let src = this.src(...ids)
-    return this._decorate(src, 'js')
-  }
-
-  //
-  css (...ids) {
-    this._csses.push(...ids)
-    return ''
-  }
-
-  _css (...ids) {
-    let src = this.src(...ids)
-    return this._decorate(src, 'css')
-  }
-
-  src (...ids) {
-    let urls = ids.map((id) => {
-      if (id === 'neuron') {
-        return 'neuron.js'
-      }
-
-      return this._resolve_id(id).url
-    })
-
-    return this.resolve(...urls)
-  }
-
-  _resolve_id (id) {
-    let parsed = parse_module_id(id)
-
-    let {
-      name,
-      version
-    } = parsed
-
-    version = this._walker.resolve_range(name, version)
-    if (version) {
-      parsed.version = version
-    }
-
-    return parsed
+    output.push(this._decorate(src, type, extra))
   }
 
   output_neuron () {
@@ -254,34 +330,7 @@ class Neuron {
     }
 
     this._neuron_outputed = true
-    return this._decorate(this.resolve('neuron.js'), 'js')
-  }
-
-  output_css () {
-    if (this._is_debug) {
-      return this._csses
-        .map(id => this._css(id))
-        .join(this._joiner)
-    }
-
-    return this._css(...this._csses)
-  }
-
-  // @param {String} link link resource
-  // @param {String} type
-  // @param {Boolean} inline whether should output resources inline
-  _decorate (link, type, extra) {
-    if (type === 'css') {
-      return `<link rel="stylesheet" href="${link}">`
-    }
-
-    extra = extra
-      ? ' ' + extra
-      : ''
-
-    if (type === 'js') {
-      return `<script src="${link}"${extra}></script>`
-    }
+    return this._decorate_sources([], 'neuron', 'js')[0]
   }
 
   output_config () {
@@ -307,13 +356,29 @@ class Neuron {
   }
 
   output_scripts () {
+    let output = []
+
+    this._output_normal_scripts(output)
+
     if (this._is_debug) {
-      return this._joiner
+      this._output_combo_module_scripts(output)
+      this._output_module_scripts(output)
     }
 
-    let output = []
-    this._output_combos_scripts(output)
+    return output.join(this._joiner)
+  }
 
+  _output_combo_module_scripts (output) {
+    this._combos.forEach((combo) => {
+      if (combo.length === 1) {
+        return this._decorate_module_script(output, combo[0])
+      }
+
+      this._decorate_sources(output, combo, 'js', 'async')
+    })
+  }
+
+  _output_module_scripts (output) {
     Object.keys(this._packages).forEach((name) => {
       this._packages[name].forEach((m) => {
         let {
@@ -326,39 +391,19 @@ class Neuron {
         id.path = path
 
         this._set_loaded(id)
-        this._decorate_script(output, id)
+        this._decorate_module_script(output, id)
       })
     })
-
-    return output.join(this._joiner)
   }
 
-  _output_combos_scripts (output) {
-    this._combos.forEach((combo) => {
-      if (combo.length === 1) {
-        return this._decorate_script(output, combo[0])
-      }
-
-      let combo_urls = combo.map(id => id.url)
-      let script = this._decorate(
-        this.resolve(...combo_urls),
-        'js',
-        'async'
-      )
-
-      output.push(script)
-    })
+  _decorate_module_script (output, id) {
+    this._decorate_sources(output, [id], 'js', 'async')
   }
 
   _get_joiner () {
     return this._is_debug
       ? '\n'
       : ''
-  }
-
-  _decorate_script (output, id) {
-    let src = this.resolve(id.url)
-    output.push(this._decorate(src, 'js', 'async'))
   }
 
   _set_loaded (id) {
