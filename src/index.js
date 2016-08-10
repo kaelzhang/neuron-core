@@ -353,7 +353,7 @@ class Neuron {
 
     this._output_normal_scripts(output)
 
-    if (this._is_debug) {
+    if (!this._is_debug) {
       this._output_combo_module_scripts(output)
       this._output_module_scripts(output)
     }
