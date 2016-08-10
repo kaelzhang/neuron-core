@@ -107,7 +107,7 @@ class Neuron {
 
   // Should be used in mother template
   output_css () {
-    this._decorate_sources([], this._csses, 'css').join(this._joiner)
+    return this._decorate_sources([], this._csses, 'css').join(this._joiner)
   }
 
   // facade & js
