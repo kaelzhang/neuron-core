@@ -131,7 +131,12 @@ class Neuron {
       ids.push('neuron')
     }
 
-    this._jses.push(ids)
+    if (this.enable_combo) {
+      this._jses.push(ids)
+      return
+    }
+
+    this._jses = this._jses.concat(ids)
   }
 
   // Declare that some modules should be comboed.
