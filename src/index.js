@@ -136,7 +136,9 @@ class Neuron {
       return
     }
 
-    this._jses = this._jses.concat(ids)
+    ids.forEach((id) => {
+      this._jses.push([id])
+    })
   }
 
   // Declare that some modules should be comboed.
