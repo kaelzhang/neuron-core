@@ -334,7 +334,7 @@ class Neuron {
     }
 
     this._neuron_outputed = true
-    return this._decorate_sources([], 'neuron', 'js')[0]
+    return this._decorate_sources([], ['neuron'], 'js')[0]
   }
 
   output_config () {
